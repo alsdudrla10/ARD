@@ -895,6 +895,79 @@ class GaussianDiffusion:
         terms["loss"] = terms["mse"] / 4
 
         return terms
+
+    def AR_4steps_losses_oneshot_gan_all_hinge(
+        self,
+        model,
+        z0,
+        z5,
+        z10,
+        z15,
+        zT,
+        t,
+        n,
+        model_kwargs=None,
+        Embedder=None,
+        discriminators=None,
+    ):
+
+        ## Regression loss
+        B, C = zT.shape[:2]
+        terms = {}
+
+        pred_z15, pred_z10, pred_z5, pred_z0 = model(
+            z5, z10, z15, zT, t, n, **model_kwargs
+        )
+        pred_z15, _ = th.split(pred_z15, C, dim=1)
+        pred_z10, _ = th.split(pred_z10, C, dim=1)
+        pred_z5, _ = th.split(pred_z5, C, dim=1)
+        pred_z0, _ = th.split(pred_z0, C, dim=1)
+
+        terms["mse"] = (
+            mean_flat((z15 - pred_z15) ** 2)
+            + mean_flat((z10 - pred_z10) ** 2)
+            + mean_flat((z5 - pred_z5) ** 2)
+            + mean_flat((z0 - pred_z0) ** 2)
+        )
+        terms["loss"] = terms["mse"] / 4
+
+        ## GAN loss
+        gen_features, c = Embedder(pred_z0, t=th.ones_like(t), **model_kwargs)
+        gen_logits = [dis(gen_features[i], c) for i, dis in enumerate(discriminators)]
+        gan_loss = -sum(gen_logits)
+        terms["gan"] = th.mean(gan_loss) / 28.0
+
+        return terms, pred_z0
+
+    def dis_all_hinge(
+        self,
+        pred_z0,
+        model_kwargs,
+        real_x,
+        real_y,
+        discriminators,
+        t,
+        Embedder,
+    ):
+        terms = {}
+
+        # 1. Forward Discriminators
+        with th.no_grad():
+            gen_features, c = Embedder(pred_z0.detach(), t=th.ones_like(t), **model_kwargs)
+        gen_logits = [dis(gen_features[i], c) for i, dis in enumerate(discriminators)]
+        with th.no_grad():
+            real_features, c = Embedder(real_x, t=th.ones_like(t), y=real_y)
+        real_logits = [dis(real_features[i], c) for i, dis in enumerate(discriminators)]
+
+        # 2. GAN Loss
+        gan_loss = 0
+        for g_logit, r_logit in zip(gen_logits, real_logits):
+            gan_loss += F.relu(th.ones_like(g_logit) + g_logit)
+            gan_loss += F.relu(th.ones_like(r_logit) - r_logit)
+        terms["gan_dis"] = th.mean(gan_loss) / 28.0
+
+        return terms
+
     def _prior_bpd(self, x_start):
         """
         Get the prior KL term for the variational lower-bound, measured in
