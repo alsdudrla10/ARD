@@ -50,9 +50,10 @@ We follow the evaluation protocol of [ADM](https://github.com/openai/guided-diff
 If you find the code useful for your research, please consider citing
 ```bib
 @inproceedings{kim2025autoregressive,
-      title={Autoregressive Distillation of Diffusion Transformers}, 
-      author={Kim, Yeongmin and Anagnostidis, Sotiris and Du, Yuming and Schönfeld, Edgar and Kohler, Jonas and Georgopoulos, Markos and Pumarola, Albert and Thabet, Ali and Sanakoyeu, Artsiom},
-      booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 
-      year={2025},
+  title={Autoregressive Distillation of Diffusion Transformers},
+  author={Kim, Yeongmin and Anagnostidis, Sotiris and Du, Yuming and Sch{\"o}nfeld, Edgar and Kohler, Jonas and Georgopoulos, Markos and Pumarola, Albert and Thabet, Ali and Sanakoyeu, Artsiom},
+  booktitle={Proceedings of the Computer Vision and Pattern Recognition Conference},
+  pages={15745--15756},
+  year={2025}
 }
 ```
